@@ -1,2 +1,4 @@
 dataset/
 checkpoints/
+__pycache__/
+result.csv
