@@ -1,4 +1,6 @@
 dataset/
+tc_data/
+user_data/
 checkpoints/
 __pycache__/
 result.csv
