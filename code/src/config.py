@@ -7,15 +7,14 @@ class Config:
     eval_interval = 1
     checkpoint_interval = 5
     print_interval = 50
-    checkpoints = './checkpoints'   # 自己创建一个文件夹用来储存权重
+    checkpoints = '../user_data'
     pretrained = None 
     start_epoch = 0
     epoches = 2
     smooth = 0.1
     erase_prob = 0.5
 
-# 构建数据集路径索引
-dataset_path = "./dataset"
+dataset_path = "../tc_data"
 data_dir = {
     'train_data': f'{dataset_path}/mchar_train/',
     'val_data': f'{dataset_path}/mchar_val/',

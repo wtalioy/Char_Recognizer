@@ -9,7 +9,7 @@ def parse_args():
                         help='Run mode: train, test, or analyze data')
     parser.add_argument('--model-path', type=str, default=None,
                         help='Path to the model checkpoint for testing')
-    parser.add_argument('--csv-path', type=str, default='result.csv',
+    parser.add_argument('--csv-path', type=str, default='../tc_data/result.csv',
                         help='Path to save prediction results')
     parser.add_argument('--download', action='store_true',
                         help='Whether to download dataset')
