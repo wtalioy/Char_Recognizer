@@ -46,6 +46,7 @@ class DigitsDataset(Dataset):
             img = self.imgs[idx]
             label = None
         img = Image.open(img)
+        img = img.convert('RGB')
         trans0 = [
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
