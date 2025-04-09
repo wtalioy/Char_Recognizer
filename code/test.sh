@@ -1,1 +1,1 @@
-python main.py --mode test
+python src/main.py --mode test

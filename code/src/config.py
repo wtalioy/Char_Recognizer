@@ -1,6 +1,6 @@
 class Config:
-    batch_size = 64
-    lr = 1e-3
+    batch_size = 32
+    lr = 1e-4
     momentum = 0.9
     weights_decay = 1e-4
     class_num = 11
@@ -10,9 +10,10 @@ class Config:
     checkpoints = '../user_data'
     pretrained = None 
     start_epoch = 0
-    epoches = 2
+    epoches = 10
     smooth = 0.1
     erase_prob = 0.5
+    prompt_num = 3
 
 dataset_path = "../tc_data"
 data_dir = {

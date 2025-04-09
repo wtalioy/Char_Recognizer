@@ -8,6 +8,12 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from config import data_dir
 
+try:
+    from torchvision.transforms import InterpolationMode
+    BICUBIC = InterpolationMode.BICUBIC
+except ImportError:
+    BICUBIC = Image.BICUBIC
+
 class DigitsDataset(Dataset):
     """
     DigitsDataset for character recognition task
@@ -46,8 +52,8 @@ class DigitsDataset(Dataset):
         ]
         min_size = self.size[0] if (img.size[1] / self.size[0]) < ((img.size[0] / self.size[1])) else self.size[1]
         trans1 = [
-            transforms.Resize(128),
-            transforms.CenterCrop((128, self.width))
+            transforms.Resize(224, interpolation=BICUBIC),
+            transforms.CenterCrop(224),  
         ]
         if self.aug:
             trans1.extend([

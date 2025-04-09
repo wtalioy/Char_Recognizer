@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 from config import config
-from model import DigitsResnet50
+from model import digitsvit
 from dataset import DigitsDataset
 from utils import parse2class, write2csv
 
@@ -24,7 +24,7 @@ def predicts(model_path, csv_path):
     results = []
     
     # Load model
-    model = DigitsResnet50().to(device)
+    model = digitsvit(config.prompt_num).to(device)
     model.load_state_dict(t.load(model_path)['model'])
     print('Load model from %s successfully' % model_path)
     

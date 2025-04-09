@@ -1,1 +1,1 @@
-python main.py --mode train
+python src/main.py --mode train
