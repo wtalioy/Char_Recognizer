@@ -7,9 +7,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Character Recognition')
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'test', 'analyze'],
                         help='Run mode: train, test, or analyze data')
-    parser.add_argument('--model-path', type=str, default=None,
+    parser.add_argument('--model-path', type=str, default='../user_data/best.pth',
                         help='Path to the model checkpoint for testing')
-    parser.add_argument('--csv-path', type=str, default='../tc_data/result.csv',
+    parser.add_argument('--csv-path', type=str, default='../prediction_result/result.csv',
                         help='Path to save prediction results')
     parser.add_argument('--download', action='store_true',
                         help='Whether to download dataset')

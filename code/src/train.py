@@ -6,7 +6,7 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from tqdm.auto import tqdm
 
 from config import config
-from model import LabelSmoothEntropy, DigitsResnet50, DigitsResnet152
+from model import LabelSmoothEntropy, DigitsResnet152
 from dataset import DigitsDataset
 
 class Trainer:
@@ -16,13 +16,15 @@ class Trainer:
     def __init__(self, val=True):
         self.device = t.device('cuda') if t.cuda.is_available() else t.device('cpu')
         # Init datasets and dataloaders
-        self.train_set = DigitsDataset(mode='train')
+        self.train_set = DigitsDataset(mode='train', aug=True)
         self.train_loader = DataLoader(self.train_set, batch_size=config.batch_size, shuffle=True, num_workers=16,
                                        pin_memory=True, persistent_workers=True,
                                        drop_last=True, collate_fn=self.train_set.collect_fn)
         if val:
-            self.val_loader = DataLoader(DigitsDataset(mode='val'), batch_size=config.batch_size,
-                                        num_workers=16, pin_memory=True, drop_last=False, persistent_workers=True)
+            self.val_set = DigitsDataset(mode='val', aug=False)
+            self.val_loader = DataLoader(self.val_set, batch_size=config.batch_size,
+                                        num_workers=16, pin_memory=True, drop_last=False, 
+                                        persistent_workers=True)
         else:
             self.val_loader = None
 
@@ -56,7 +58,7 @@ class Trainer:
                 # Save best model
                 if acc > self.best_acc:
                     os.makedirs(config.checkpoints, exist_ok=True)
-                    save_path = os.path.join(config.checkpoints, 'epoch-resnet50-%d-acc-%.2f.pth' % (epoch + 1, acc * 100))
+                    save_path = os.path.join(config.checkpoints, 'best.pth')
                     self.save_model(save_path)
                     print('%s saved successfully...' % save_path)
                     self.best_acc = acc
