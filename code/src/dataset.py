@@ -6,7 +6,7 @@ from PIL import Image
 import torch as t
 from torch.utils.data import Dataset
 from torchvision import transforms
-from config import data_dir, transform
+from config import data_dir
 
 class DigitsDataset(Dataset):
     """

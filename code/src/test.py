@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 from config import config
-from model import DigitsResnet50, DigitsResnet152
+from model import DigitsResnet152
 from dataset import DigitsDataset
 from utils import parse2class, write2csv
 
@@ -19,7 +19,7 @@ def predicts(model_path, csv_path):
         list: Prediction results as list of [filename, predicted_code] pairs
     """
     device = t.device('cuda') if t.cuda.is_available() else t.device('cpu')
-    test_loader = DataLoader(DigitsDataset(mode='test'), batch_size=config.batch_size, shuffle=False,
+    test_loader = DataLoader(DigitsDataset(mode='test', aug=False), batch_size=config.batch_size, shuffle=False,
                     num_workers=16, pin_memory=True, drop_last=False, persistent_workers=True)
     results = []
     

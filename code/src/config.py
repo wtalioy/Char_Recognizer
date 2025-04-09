@@ -11,7 +11,7 @@ class Config:
     checkpoints = '../user_data'
     pretrained = None 
     start_epoch = 0
-    epoches = 30
+    epoches = 50
     smooth = 0.1
     erase_prob = 0.5
 
