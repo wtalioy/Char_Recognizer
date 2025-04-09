@@ -3,4 +3,6 @@ tc_data/
 user_data/
 checkpoints/
 __pycache__/
+.cache/
+.vscode/
 result.csv
