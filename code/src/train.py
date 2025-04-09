@@ -6,7 +6,7 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from tqdm.auto import tqdm
 
 from config import config
-from model import LabelSmoothEntropy, digitsvit
+from model import LabelSmoothEntropy, digitsrn50
 from dataset import DigitsDataset
 
 class Trainer:
@@ -27,9 +27,9 @@ class Trainer:
             self.val_loader = None
 
         # Init model, criterion, optimizer and scheduler
-        self.model = digitsvit(config.prompt_num).to(self.device)
+        self.model = digitsrn50(class_num=config.class_num).to(self.device)
         self.criterion = LabelSmoothEntropy().to(self.device)
-        self.optimizer = Adam(self.model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0,
+        self.optimizer = Adam(self.model.parameters(), lr=config.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0,
                               amsgrad=False)
         self.lr_scheduler = CosineAnnealingWarmRestarts(self.optimizer, T_0=10, T_mult=2, eta_min=0)
         self.best_acc = 0

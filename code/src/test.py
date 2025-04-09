@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 from config import config
-from model import digitsvit
+from model import digitsrn50
 from dataset import DigitsDataset
 from utils import parse2class, write2csv
 
@@ -20,11 +20,11 @@ def predicts(model_path, csv_path):
     """
     device = t.device('cuda') if t.cuda.is_available() else t.device('cpu')
     test_loader = DataLoader(DigitsDataset(mode='test', aug=False), batch_size=config.batch_size, shuffle=False,
-                    num_workers=8, pin_memory=True, drop_last=False, persistent_workers=True)
+                    num_workers=16, pin_memory=True, drop_last=False, persistent_workers=True)
     results = []
     
     # Load model
-    model = digitsvit(config.prompt_num).to(device)
+    model = digitsrn50(class_num=config.class_num).to(device)
     model.load_state_dict(t.load(model_path)['model'])
     print('Load model from %s successfully' % model_path)
     

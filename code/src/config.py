@@ -1,6 +1,6 @@
 class Config:
     batch_size = 32
-    lr = 1e-4
+    lr = 1e-3
     momentum = 0.9
     weights_decay = 1e-4
     class_num = 11
@@ -13,7 +13,6 @@ class Config:
     epoches = 10
     smooth = 0.1
     erase_prob = 0.5
-    prompt_num = 3
 
 dataset_path = "../tc_data"
 data_dir = {

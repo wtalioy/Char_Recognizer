@@ -1,7 +1,7 @@
-from utils import digitsvit
-from model import LabelSmoothEntropy
+from model.utils import digitsrn50
+from model.model import LabelSmoothEntropy
 
 __all__ = [
-    "digitsvit",
+    "digitsrn50",
     "LabelSmoothEntropy",
 ]
