@@ -1,7 +1,7 @@
-from model.utils import digitsrn50
-from model.model import LabelSmoothEntropy
+from model.model import LabelSmoothEntropy, DigitsResnet50, DigitsResnet152
 
 __all__ = [
-    "digitsrn50",
+    "DigitsResnet50",
+    "DigitsResnet152",
     "LabelSmoothEntropy",
 ]

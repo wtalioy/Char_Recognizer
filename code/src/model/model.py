@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models.resnet import resnet50
+from torchvision.models.resnet import resnet50, resnet152
 
 class DigitsResnet50(nn.Module):
     """
@@ -10,6 +10,30 @@ class DigitsResnet50(nn.Module):
     def __init__(self, class_num=11):
         super(DigitsResnet50, self).__init__()
         self.net = resnet50(pretrained=True)
+        self.net = nn.Sequential(*list(self.net.children())[:-1]) 
+        self.cnn = self.net
+        self.fc1 = nn.Linear(2048, class_num)
+        self.fc2 = nn.Linear(2048, class_num)
+        self.fc3 = nn.Linear(2048, class_num)
+        self.fc4 = nn.Linear(2048, class_num)
+
+    def forward(self, img):
+        feat = self.cnn(img)
+        feat = feat.view(feat.shape[0], -1)
+        c1 = self.fc1(feat)
+        c2 = self.fc2(feat)
+        c3 = self.fc3(feat)
+        c4 = self.fc4(feat)
+        return c1, c2, c3, c4
+    
+    
+class DigitsResnet152(nn.Module):
+    """
+    ResNet50-based model for multi-digit recognition
+    """
+    def __init__(self, class_num=11):
+        super(DigitsResnet152, self).__init__()
+        self.net = resnet152(pretrained=True)
         self.net = nn.Sequential(*list(self.net.children())[:-1]) 
         self.cnn = self.net
         self.fc1 = nn.Linear(2048, class_num)
