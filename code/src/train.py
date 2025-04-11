@@ -6,7 +6,7 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from tqdm.auto import tqdm
 
 from config import config
-from model import LabelSmoothEntropy, DigitsResnet152
+from model import LabelSmoothEntropy, BBoxSupervisionDigitsResnet
 from dataset import DigitsDataset
 
 class Trainer:
@@ -24,13 +24,14 @@ class Trainer:
             self.val_set = DigitsDataset(mode='val', aug=False)
             self.val_loader = DataLoader(self.val_set, batch_size=config.batch_size,
                                         num_workers=16, pin_memory=True, drop_last=False, 
-                                        persistent_workers=True)
+                                        persistent_workers=True, collate_fn=self.val_set.collect_fn)
         else:
             self.val_loader = None
 
         # Init model, criterion, optimizer and scheduler
-        self.model = DigitsResnet152(class_num=config.class_num).to(self.device)
+        self.model = BBoxSupervisionDigitsResnet(class_num=config.class_num).to(self.device)
         self.criterion = LabelSmoothEntropy().to(self.device)
+        self.bbox_criterion = t.nn.SmoothL1Loss()  # 使用SmoothL1Loss作为边界框回归损失
         self.optimizer = Adam(self.model.parameters(), lr=config.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0,
                               amsgrad=False)
         self.lr_scheduler = CosineAnnealingWarmRestarts(self.optimizer, T_0=10, T_mult=2, eta_min=0)
@@ -75,33 +76,64 @@ class Trainer:
             float: Accuracy for this epoch
         """
         total_loss = 0
+        total_cls_loss = 0
+        total_bbox_loss = 0
         corrects = 0
         tbar = tqdm(self.train_loader)
         self.model.train()
-        for i, (img, label) in enumerate(tbar):
+        for i, (img, label, boxes) in enumerate(tbar):
             img = img.to(self.device)
             label = label.to(self.device)
+            
+            bbox_targets = []
+            for j in range(4):
+                bbox_targets.append(boxes[:, j, :].to(self.device))
+            
             self.optimizer.zero_grad()
-            pred = self.model(img)
-            # Calculate loss for all 4 digits
-            loss = self.criterion(pred[0], label[:, 0]) + \
-                   self.criterion(pred[1], label[:, 1]) + \
-                   self.criterion(pred[2], label[:, 2]) + \
-                   self.criterion(pred[3], label[:, 3])
+            
+            cls_preds, bbox_preds = self.model(img)
+            
+            cls_loss = self.criterion(cls_preds[0], label[:, 0]) + \
+                      self.criterion(cls_preds[1], label[:, 1]) + \
+                      self.criterion(cls_preds[2], label[:, 2]) + \
+                      self.criterion(cls_preds[3], label[:, 3])
+            
+            bbox_loss = 0
+            for j in range(4):
+                # mask empty digits
+                valid_mask = (label[:, j] != 10).float().view(-1, 1)
+                pos_bbox_loss = self.bbox_criterion(
+                    bbox_preds[j] * valid_mask, 
+                    bbox_targets[j] * valid_mask
+                )
+                bbox_loss += pos_bbox_loss
+            
+            loss = cls_loss + 0.1 * bbox_loss
+            
             total_loss += loss.item()
+            total_cls_loss += cls_loss.item()
+            total_bbox_loss += bbox_loss.item()
+            
             loss.backward()
             self.optimizer.step()
-            # Calculate accuracy (all 4 digits correct)
+            
             temp = t.stack([ \
-                pred[0].argmax(1) == label[:, 0], \
-                pred[1].argmax(1) == label[:, 1], \
-                pred[2].argmax(1) == label[:, 2], \
-                pred[3].argmax(1) == label[:, 3], ], dim=1)
+                cls_preds[0].argmax(1) == label[:, 0], \
+                cls_preds[1].argmax(1) == label[:, 1], \
+                cls_preds[2].argmax(1) == label[:, 2], \
+                cls_preds[3].argmax(1) == label[:, 3], ], dim=1)
             corrects += t.all(temp, dim=1).sum().item()
+            
             tbar.set_description(
-                'loss: %.3f, acc: %.3f' % (loss / (i + 1), corrects * 100 / ((i + 1) * config.batch_size)))
+                'loss: %.3f (cls: %.3f, bbox: %.3f), acc: %.3f' % 
+                (total_loss / (i + 1), 
+                 total_cls_loss / (i + 1),
+                 total_bbox_loss / (i + 1),
+                 corrects * 100 / ((i + 1) * config.batch_size)))
+                
             if (i + 1) % config.print_interval == 0:
                 self.lr_scheduler.step()
+                
         return corrects * 100 / ((i + 1) * config.batch_size)
 
     def eval(self):
@@ -115,15 +147,18 @@ class Trainer:
         corrects = 0
         with t.no_grad():
             tbar = tqdm(self.val_loader)
-            for i, (img, label) in enumerate(tbar):
+            for i, (img, label, boxes) in enumerate(tbar):
                 img = img.to(self.device)
                 label = label.to(self.device)
-                pred = self.model(img)
+                
+                # 前向传播，只关注分类结果
+                cls_preds, _ = self.model(img)
+                
                 temp = t.stack([
-                    pred[0].argmax(1) == label[:, 0], \
-                    pred[1].argmax(1) == label[:, 1], \
-                    pred[2].argmax(1) == label[:, 2], \
-                    pred[3].argmax(1) == label[:, 3], \
+                    cls_preds[0].argmax(1) == label[:, 0], \
+                    cls_preds[1].argmax(1) == label[:, 1], \
+                    cls_preds[2].argmax(1) == label[:, 2], \
+                    cls_preds[3].argmax(1) == label[:, 3], \
                     ], dim=1)
                 corrects += t.all(temp, dim=1).sum().item()
                 tbar.set_description('Val Acc: %.2f' % (corrects * 100 / ((i + 1) * config.batch_size)))

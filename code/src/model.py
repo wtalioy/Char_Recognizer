@@ -48,12 +48,12 @@ class CBAM(nn.Module):
         return x
 
 
-class DigitsResnet152(nn.Module):
+class DigitsResnet(nn.Module):
     """
     ResNet50-based model for multi-digit recognition
     """
     def __init__(self, class_num=11):
-        super(DigitsResnet152, self).__init__()
+        super(DigitsResnet, self).__init__()
         self.backbone = nn.Sequential(*list(resnet152(pretrained=True).children())[:-1])
         
         self.attn = CBAM(in_planes=2048)
@@ -74,6 +74,48 @@ class DigitsResnet152(nn.Module):
         c3 = self.fc3(feat)
         c4 = self.fc4(feat)
         return c1, c2, c3, c4
+
+
+class BBoxSupervisionDigitsResnet(nn.Module):
+    
+    def __init__(self, class_num=11):
+        super(BBoxSupervisionDigitsResnet, self).__init__()
+        self.backbone = nn.Sequential(*list(resnet152(pretrained=True).children())[:-1])
+        
+        self.attn = CBAM(in_planes=2048)
+        self.pool = nn.AdaptiveAvgPool2d((1, 1))
+        
+        # 字符分类器
+        self.fc1 = nn.Linear(2048, class_num)
+        self.fc2 = nn.Linear(2048, class_num)
+        self.fc3 = nn.Linear(2048, class_num)
+        self.fc4 = nn.Linear(2048, class_num)
+        
+        # 边界框预测器 (x_min, y_min, x_max, y_max)
+        self.bbox_predictor1 = nn.Linear(2048, 4)  
+        self.bbox_predictor2 = nn.Linear(2048, 4)
+        self.bbox_predictor3 = nn.Linear(2048, 4)
+        self.bbox_predictor4 = nn.Linear(2048, 4)
+
+    def forward(self, img):
+        # 提取图像特征
+        feat_map = self.backbone(img)
+        feat_map = self.attn(feat_map)
+        feat = self.pool(feat_map).flatten(start_dim=1)
+        
+        # 字符分类
+        c1 = self.fc1(feat)
+        c2 = self.fc2(feat)
+        c3 = self.fc3(feat)
+        c4 = self.fc4(feat)
+        
+        # 边界框预测
+        b1 = self.bbox_predictor1(feat)
+        b2 = self.bbox_predictor2(feat)
+        b3 = self.bbox_predictor3(feat)
+        b4 = self.bbox_predictor4(feat)
+        
+        return (c1, c2, c3, c4), (b1, b2, b3, b4)
 
 
 class LabelSmoothEntropy(nn.Module):
