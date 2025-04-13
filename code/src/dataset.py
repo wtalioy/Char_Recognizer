@@ -61,7 +61,7 @@ class DigitsDataset(Dataset):
             
             if self.aug:
                 transform = A.Compose([
-                    A.Resize(height=128, width=self.width),
+                    A.Resize(height=128, width=224),
                     A.Affine(
                         scale=(0.9, 1.1),
                         translate_percent=(-0.05, 0.05),
@@ -82,7 +82,7 @@ class DigitsDataset(Dataset):
                 ))
             else:
                 transform = A.Compose([
-                    A.Resize(height=128, width=self.width),
+                    A.Resize(height=128, width=224),
                     A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                     ToTensorV2()
                 ], bbox_params=A.BboxParams(

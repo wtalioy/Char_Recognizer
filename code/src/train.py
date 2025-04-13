@@ -6,7 +6,7 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from tqdm.auto import tqdm
 
 from config import config
-from model import BBoxSupervisionDigitsResnet, DigitsRNFPN
+from model import DigitsResnet
 from dataset import DigitsDataset
 from losses import LabelSmoothEntropy, CIoULoss
 
@@ -30,7 +30,7 @@ class Trainer:
             self.val_loader = None
 
         # Init model, criterion, optimizer and scheduler
-        self.model = DigitsRNFPN(class_num=config.class_num).to(self.device)
+        self.model = DigitsResnet(class_num=config.class_num).to(self.device)
         self.criterion = LabelSmoothEntropy().to(self.device)
         self.bbox_criterion = CIoULoss()
         self.optimizer = Adam(self.model.parameters(), lr=config.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=config.weights_decay,
@@ -87,25 +87,24 @@ class Trainer:
             img = img.to(self.device)
             label = label.to(self.device)
             
-            bbox_targets = []
-            for j in range(4):
-                bbox_targets.append(boxes[:, j, :].to(self.device))
+            # bbox_targets = []
+            # for j in range(4):
+            #     bbox_targets.append(boxes[:, j, :].to(self.device))
+            # self.optimizer.zero_grad()           
+            # _, bbox_preds = self.model(img)
             
-            self.optimizer.zero_grad()           
-            _, bbox_preds = self.model(img)
-            
-            bbox_loss = 0
-            for j in range(4):
-                # mask empty digits
-                valid_mask = (label[:, j] != 10).float().view(-1, 1)
-                pos_bbox_loss = self.bbox_criterion(
-                    bbox_preds[j] * valid_mask, 
-                    bbox_targets[j] * valid_mask
-                )
-                bbox_loss += pos_bbox_loss
-
-            bbox_loss.backward()
-            self.optimizer.step()
+            # bbox_loss = 0
+            # for j in range(4):
+            #     # mask empty digits
+            #     valid_mask = (label[:, j] != 10).float().view(-1, 1)
+            #     pos_bbox_loss = self.bbox_criterion(
+            #         bbox_preds[j] * valid_mask, 
+            #         bbox_targets[j] * valid_mask
+            #     )
+            #     bbox_loss += pos_bbox_loss
+                
+            # bbox_loss.backward()
+            # self.optimizer.step()
 
             self.optimizer.zero_grad()
             cls_preds, _ = self.model(img)
