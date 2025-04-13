@@ -62,18 +62,37 @@ class DigitsDataset(Dataset):
             if self.aug:
                 transform = A.Compose([
                     A.Resize(height=128, width=self.width),
-                    A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=15, p=0.5),
+                    A.Affine(
+                        scale=(0.9, 1.1),
+                        translate_percent=(-0.05, 0.05),
+                        rotate=(-15, 15),
+                        p=0.5
+                    ),
                     A.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, p=0.5),
-                    A.RandomGrayscale(p=0.1),
+                    A.ToGray(p=0.1),
                     A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                     ToTensorV2()
-                ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels']))
+                ], bbox_params=A.BboxParams(
+                    format='pascal_voc', 
+                    label_fields=['class_labels'],
+                    min_visibility=0.3,
+                    min_area=0.0,
+                    check_each_transform=True,
+                    clip=True
+                ))
             else:
                 transform = A.Compose([
                     A.Resize(height=128, width=self.width),
                     A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                     ToTensorV2()
-                ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['class_labels']))
+                ], bbox_params=A.BboxParams(
+                    format='pascal_voc', 
+                    label_fields=['class_labels'],
+                    min_visibility=0.3,
+                    min_area=0.0,
+                    check_each_transform=True,
+                    clip=True
+                ))
             transformed = transform(image=img, bboxes=bboxes, class_labels=class_labels)
             
             transformed_image = transformed['image']

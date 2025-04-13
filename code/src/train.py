@@ -6,8 +6,9 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from tqdm.auto import tqdm
 
 from config import config
-from model import LabelSmoothEntropy, BBoxSupervisionDigitsResnet
+from model import BBoxSupervisionDigitsResnet, DigitsRNFPN
 from dataset import DigitsDataset
+from losses import LabelSmoothEntropy, CIoULoss
 
 class Trainer:
     """
@@ -29,10 +30,10 @@ class Trainer:
             self.val_loader = None
 
         # Init model, criterion, optimizer and scheduler
-        self.model = BBoxSupervisionDigitsResnet(class_num=config.class_num).to(self.device)
+        self.model = DigitsRNFPN(class_num=config.class_num).to(self.device)
         self.criterion = LabelSmoothEntropy().to(self.device)
-        self.bbox_criterion = t.nn.SmoothL1Loss()  # 使用SmoothL1Loss作为边界框回归损失
-        self.optimizer = Adam(self.model.parameters(), lr=config.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0,
+        self.bbox_criterion = CIoULoss()
+        self.optimizer = Adam(self.model.parameters(), lr=config.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=config.weights_decay,
                               amsgrad=False)
         self.lr_scheduler = CosineAnnealingWarmRestarts(self.optimizer, T_0=10, T_mult=2, eta_min=0)
         self.best_acc = 0
@@ -76,6 +77,7 @@ class Trainer:
             float: Accuracy for this epoch
         """
         total_loss = 0
+        bbox_loss = t.tensor([0])
         total_cls_loss = 0
         total_bbox_loss = 0
         corrects = 0
@@ -89,14 +91,8 @@ class Trainer:
             for j in range(4):
                 bbox_targets.append(boxes[:, j, :].to(self.device))
             
-            self.optimizer.zero_grad()
-            
-            cls_preds, bbox_preds = self.model(img)
-            
-            cls_loss = self.criterion(cls_preds[0], label[:, 0]) + \
-                      self.criterion(cls_preds[1], label[:, 1]) + \
-                      self.criterion(cls_preds[2], label[:, 2]) + \
-                      self.criterion(cls_preds[3], label[:, 3])
+            self.optimizer.zero_grad()           
+            _, bbox_preds = self.model(img)
             
             bbox_loss = 0
             for j in range(4):
@@ -107,15 +103,24 @@ class Trainer:
                     bbox_targets[j] * valid_mask
                 )
                 bbox_loss += pos_bbox_loss
+
+            bbox_loss.backward()
+            self.optimizer.step()
+
+            self.optimizer.zero_grad()
+            cls_preds, _ = self.model(img)
             
-            loss = cls_loss + 0.1 * bbox_loss
+            cls_loss = self.criterion(cls_preds[0], label[:, 0]) + \
+                      self.criterion(cls_preds[1], label[:, 1]) + \
+                      self.criterion(cls_preds[2], label[:, 2]) + \
+                      self.criterion(cls_preds[3], label[:, 3])
             
-            total_loss += loss.item()
+            cls_loss.backward()
+            self.optimizer.step()
+            
+            total_loss += bbox_loss.item() + cls_loss.item()
             total_cls_loss += cls_loss.item()
             total_bbox_loss += bbox_loss.item()
-            
-            loss.backward()
-            self.optimizer.step()
             
             temp = t.stack([ \
                 cls_preds[0].argmax(1) == label[:, 0], \

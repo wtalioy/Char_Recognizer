@@ -1,4 +1,3 @@
-from torchvision import transforms
 class Config:
     batch_size = 32
     lr = 1e-4
